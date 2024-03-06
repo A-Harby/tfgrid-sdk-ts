@@ -1,5 +1,26 @@
 <template>
   <weblet-layout ref="layout" @mount="() => {}">
+    <v-data-table-server
+      v-if="$props.tableHeaders"
+      :headers="$props.tableHeaders"
+      :loading="$props.loading.value"
+      loading-text="Loading nodes..."
+      :deleting="deleting"
+      :no-data-text="capitalize(`No ${props.contractsType} contracts found on your account.`)"
+      :items-per-page-options="[
+        { value: 5, title: '5' },
+        { value: 10, title: '10' },
+        { value: 15, title: '15' },
+        { value: 50, title: '50' },
+      ]"
+      class="elevation-1 v-data-table-header"
+      density="compact"
+      :items-length="count"
+      :items-per-page="$props.size"
+      :page="$props.page"
+    >
+    </v-data-table-server>
+    <!--  -->
     <list-table
       v-if="$props.tableHeaders"
       :headers="$props.tableHeaders"
@@ -154,6 +175,7 @@ import type { NodeStatus } from "@threefold/gridproxy_client";
 import type { ContractLock } from "@threefold/tfchain_client";
 import { DeploymentKeyDeletionError, TFChainErrors } from "@threefold/types";
 import { capitalize, computed, defineComponent, type PropType, type Ref, ref } from "vue";
+import type { VDataTable } from "vuetify/labs/VDataTable";
 
 import type { VDataTableHeader } from "@/types";
 import { ContractType, getNodeStateColor, getStateColor, type NormalizedContract } from "@/utils/contracts";
@@ -186,6 +208,18 @@ const props = defineProps({
   contractsType: {
     type: Object as PropType<ContractType>,
     required: true,
+  },
+  size: {
+    required: true,
+    type: Number,
+  },
+  page: {
+    required: true,
+    type: Number,
+  },
+  count: {
+    required: true,
+    type: Number,
   },
 });
 

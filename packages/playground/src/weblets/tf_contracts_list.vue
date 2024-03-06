@@ -56,6 +56,17 @@
           :contracts-type="table.type"
           :table-headers="table.headers"
           @update:deleted-contracts="onDeletedContracts"
+          :count="nodesCount"
+          :page="page"
+          @update:page="
+            page = $event;
+            loadContracts();
+          "
+          :size="size"
+          @update:size="
+            size = $event;
+            loadContracts();
+          "
         />
       </v-expansion-panel-text>
     </v-expansion-panel>
@@ -81,7 +92,7 @@ import {
 import { createCustomToast, ToastType } from "@/utils/custom_toast";
 import { getGrid } from "@/utils/grid";
 
-import { queryClient } from "../clients";
+import { gridProxyClient, queryClient } from "../clients";
 
 const isLoading = ref<boolean>(false);
 const profileManager = useProfileManager();
@@ -97,6 +108,10 @@ const totalCostUSD = ref<number>();
 
 const panel = ref<number[]>([0, 1, 2]);
 const nodeStatus = ref() as Ref<{ [x: number]: NodeStatus }>;
+
+const page = ref(1);
+const size = ref(window.env.PAGE_SIZE);
+const nodesCount = ref<number>(0);
 
 // Computed property to get unique node IDs from contracts
 const nodeIDs = computed(() => {
@@ -148,6 +163,32 @@ async function onMount() {
 
   // Update UI
   isLoading.value = false;
+}
+
+// TODO: how to load with table based on contract type
+async function loadContracts() {
+  isLoading.value = true;
+  loadingErrorMessage.value = undefined;
+  try {
+    const { count, data: contracts } = await gridProxyClient.contracts.list({
+      twinId: profileManager.profile!.twinId,
+      state: "Created",
+      size: size.value,
+      page: page.value,
+      type: ContractType.NODE,
+      retCount: true,
+    });
+
+    console.log("Loaded Contracts: ", contracts);
+
+    nodesCount.value = count ?? 0;
+  } catch (error) {
+    // Handle errors and display toast messages
+    loadingErrorMessage.value = error.message;
+    createCustomToast(`Error while listing contracts due: ${error.message}`, ToastType.danger, {});
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 // Calculate the total cost of contracts
