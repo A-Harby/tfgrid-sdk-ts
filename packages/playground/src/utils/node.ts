@@ -5,7 +5,7 @@ import axios from "axios";
 import type { jsPDF } from "jspdf";
 import moment from "moment";
 
-import { gqlClient } from "@/clients";
+import { gqlClient, gridProxyClient } from "@/clients";
 
 import type { CloudUnits, Fixup, Minting } from "./mintings";
 
@@ -100,8 +100,10 @@ export async function getNodeAvailability(nodeId: number) {
   if (elapsedSinceLastUptimeEvent >= UPTIME_EVENTS_INTERVAL) {
     downtime += elapsedSinceLastUptimeEvent;
   }
+
+  const node: GridNode = await gridProxyClient.nodes.byId(nodeId);
   console.log(
-    `getNodeAvailability: Node ${nodeId} was down for ${downtime} seconds in the last ${secondsSinceCurrentPeriodStart} seconds.`,
+    `getNodeAvailability: Node ${nodeId} was ${node.status} for ${downtime} seconds in the last ${secondsSinceCurrentPeriodStart} seconds.`,
   );
   return { downtime: downtime, currentPeriod: secondsSinceCurrentPeriodStart };
 }
