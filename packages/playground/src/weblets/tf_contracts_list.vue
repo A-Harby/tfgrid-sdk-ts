@@ -48,7 +48,7 @@
 
       <v-expansion-panel-text>
         <!-- Contracts Table Component -->
-        <!-- <contracts-table
+        <contracts-table
           :node-status="nodeStatus"
           :loading="table.loading"
           :contracts="table.contracts"
@@ -56,9 +56,9 @@
           :contracts-type="table.type"
           :table-headers="table.headers"
           @update:deleted-contracts="onDeletedContracts"
-        /> -->
+        />
 
-        <contracts-table
+        <!-- <contracts-table
           :node-status="nodeStatus"
           :loading="table.loading"
           :contracts="table.contracts"
@@ -77,7 +77,7 @@
             size = $event;
             loadContracts();
           "
-        />
+        /> -->
       </v-expansion-panel-text>
     </v-expansion-panel>
   </v-expansion-panels>
@@ -128,81 +128,81 @@ const nodeIDs = computed(() => {
   return [...new Set(allNodes)];
 });
 
-onMounted(loadContracts);
+onMounted(onMount);
 
-// async function onMount() {
-//   contracts.value = nameContracts.value = nodeContracts.value = rentContracts.value = [];
-//   isLoading.value = true;
-//   totalCost.value = undefined;
-//   totalCostUSD.value = undefined;
-//   loadingErrorMessage.value = undefined;
-//   updateGrid(grid, { projectName: "" });
-
-//   if (profileManager.profile) {
-//     if (grid) {
-//       try {
-//         // Fetch user contracts, node status, and calculate total cost
-//         contracts.value = await getUserContracts(grid);
-//         nodeInfo.value = await getNodeInfo(nodeIDs.value);
-//         contracts.value.map(contract => {
-//           const { nodeId } = contract;
-//           if (nodeId && nodeInfo.value[nodeId]) {
-//             contract.farmId = nodeInfo.value[nodeId].farmId;
-//           }
-//           return contract;
-//         });
-//         nodeContracts.value = contracts.value.filter(c => c.type === ContractType.NODE);
-//         nameContracts.value = contracts.value.filter(c => c.type === ContractType.NAME);
-//         rentContracts.value = contracts.value.filter(c => c.type === ContractType.RENT);
-//         totalCost.value = getTotalCost(contracts.value);
-//         const TFTInUSD = await queryClient.tftPrice.get();
-//         totalCostUSD.value = totalCost.value * (TFTInUSD / 1000);
-//       } catch (error: any) {
-//         // Handle errors and display toast messages
-//         loadingErrorMessage.value = error.message;
-//         createCustomToast(`Error while listing contracts due: ${error.message}`, ToastType.danger, {});
-//       }
-//     } else {
-//       loadingErrorMessage.value = "Failed to initialize an instance of grid type.";
-//       createCustomToast("Failed to initialize an instance of grid type.", ToastType.danger, {});
-//     }
-//   } else {
-//     loadingErrorMessage.value =
-//       "Failed to initialize an instance of the profile manager, please make sure that you have a stable connection.";
-//     createCustomToast(
-//       "Failed to initialize an instance of the profile manager, please make sure that you have a stable connection.",
-//       ToastType.danger,
-//       {},
-//     );
-//   }
-
-//   // Update UI
-//   isLoading.value = false;
-// }
-
-async function loadContracts() {
+async function onMount() {
+  contracts.value = nameContracts.value = nodeContracts.value = rentContracts.value = [];
   isLoading.value = true;
+  totalCost.value = undefined;
+  totalCostUSD.value = undefined;
   loadingErrorMessage.value = undefined;
-  try {
-    const { count, data: contracts } = await gridProxyClient.contracts.list({
-      twinId: profileManager.profile!.twinId,
-      state: [ContractState.Created, ContractState.GracePeriod],
-      size: size.value,
-      page: page.value,
-      retCount: true,
-    });
+  updateGrid(grid, { projectName: "" });
 
-    console.log("Loaded Contracts: ", contracts);
-
-    nodesCount.value = count ?? 0;
-  } catch (error: any) {
-    // Handle errors and display toast messages
-    loadingErrorMessage.value = error.message;
-    createCustomToast(`Error while listing contracts due: ${error.message}`, ToastType.danger, {});
-  } finally {
-    isLoading.value = false;
+  if (profileManager.profile) {
+    if (grid) {
+      try {
+        // Fetch user contracts, node status, and calculate total cost
+        contracts.value = await getUserContracts(grid);
+        nodeInfo.value = await getNodeInfo(nodeIDs.value);
+        contracts.value.map(contract => {
+          const { nodeId } = contract;
+          if (nodeId && nodeInfo.value[nodeId]) {
+            contract.farmId = nodeInfo.value[nodeId].farmId;
+          }
+          return contract;
+        });
+        nodeContracts.value = contracts.value.filter(c => c.type === ContractType.NODE);
+        nameContracts.value = contracts.value.filter(c => c.type === ContractType.NAME);
+        rentContracts.value = contracts.value.filter(c => c.type === ContractType.RENT);
+        totalCost.value = getTotalCost(contracts.value);
+        const TFTInUSD = await queryClient.tftPrice.get();
+        totalCostUSD.value = totalCost.value * (TFTInUSD / 1000);
+      } catch (error: any) {
+        // Handle errors and display toast messages
+        loadingErrorMessage.value = error.message;
+        createCustomToast(`Error while listing contracts due: ${error.message}`, ToastType.danger, {});
+      }
+    } else {
+      loadingErrorMessage.value = "Failed to initialize an instance of grid type.";
+      createCustomToast("Failed to initialize an instance of grid type.", ToastType.danger, {});
+    }
+  } else {
+    loadingErrorMessage.value =
+      "Failed to initialize an instance of the profile manager, please make sure that you have a stable connection.";
+    createCustomToast(
+      "Failed to initialize an instance of the profile manager, please make sure that you have a stable connection.",
+      ToastType.danger,
+      {},
+    );
   }
+
+  // Update UI
+  isLoading.value = false;
 }
+
+// async function loadContracts() {
+//   isLoading.value = true;
+//   loadingErrorMessage.value = undefined;
+//   try {
+//     const { count, data: contracts } = await gridProxyClient.contracts.list({
+//       twinId: profileManager.profile!.twinId,
+//       state: [ContractState.Created, ContractState.GracePeriod],
+//       size: size.value,
+//       page: page.value,
+//       retCount: true,
+//     });
+
+//     console.log("Loaded Contracts: ", contracts);
+
+//     nodesCount.value = count ?? 0;
+//   } catch (error: any) {
+//     // Handle errors and display toast messages
+//     loadingErrorMessage.value = error.message;
+//     createCustomToast(`Error while listing contracts due: ${error.message}`, ToastType.danger, {});
+//   } finally {
+//     isLoading.value = false;
+//   }
+// }
 
 const nodeStatus = computed(() => {
   const statusObject: { [x: number]: NodeStatus } = {};

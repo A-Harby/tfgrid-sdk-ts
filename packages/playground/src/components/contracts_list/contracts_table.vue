@@ -1,6 +1,6 @@
 <template>
   <weblet-layout ref="layout" @mount="() => {}">
-    <v-data-table-server
+    <!-- <v-data-table-server
       v-if="$props.tableHeaders"
       :headers="$props.tableHeaders"
       :loading="$props.loading.value"
@@ -69,8 +69,8 @@
           </template>
         </v-tooltip>
       </template>
-    </v-data-table-server>
-    <!-- <list-table
+    </v-data-table-server> -->
+    <list-table
       v-if="$props.tableHeaders"
       :headers="$props.tableHeaders"
       :items="contracts"
@@ -130,7 +130,7 @@
           </template>
         </v-tooltip>
       </template>
-    </list-table> -->
+    </list-table>
 
     <template #footer-actions>
       <v-btn
