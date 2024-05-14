@@ -7,6 +7,7 @@ import { solutionType, type VDataTableHeader } from "@/types";
 
 import { normalizeBalance } from "./helpers";
 
+// TODO:
 export async function getUserContracts(grid: GridClient) {
   const res: any = await grid!.contracts.listMyContracts();
 

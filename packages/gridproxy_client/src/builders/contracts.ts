@@ -22,7 +22,7 @@ export interface ContractsQuery {
   nodeId: number;
   name: string;
   type: ContractType;
-  state: ContractState;
+  state: ContractState[];
   deploymentData: string;
   deploymentHash: string;
   numberOfPublicIps: number;
@@ -55,9 +55,16 @@ const CONTRACTS_VALIDATOR: BuilderValidator<ContractsQuery> = {
     assertString(value);
     assertIn(value, [ContractType.Name, ContractType.Node, ContractType.Rent]);
   },
-  state(value) {
-    assertString(value);
-    assertIn(value, [ContractState.Created, ContractState.GracePeriod, ContractState.Deleted]);
+  state(value: ContractState[]) {
+    if (!Array.isArray(value)) {
+      throw new Error("Invalid state: Must be an array");
+    }
+    // TODO:
+    // value.forEach(state => {
+    //   if (!Object.hasOwn(ContractState, state)) {
+    //     throw new Error(`Invalid state element: ${state}`);
+    //   }
+    // });
   },
   deploymentData: assertString,
   deploymentHash: assertString,

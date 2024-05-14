@@ -48,6 +48,16 @@
 
       <v-expansion-panel-text>
         <!-- Contracts Table Component -->
+        <!-- <contracts-table
+          :node-status="nodeStatus"
+          :loading="table.loading"
+          :contracts="table.contracts"
+          :grid="table.grid"
+          :contracts-type="table.type"
+          :table-headers="table.headers"
+          @update:deleted-contracts="onDeletedContracts"
+        /> -->
+
         <contracts-table
           :node-status="nodeStatus"
           :loading="table.loading"
@@ -56,6 +66,17 @@
           :contracts-type="table.type"
           :table-headers="table.headers"
           @update:deleted-contracts="onDeletedContracts"
+          :count="nodesCount"
+          :page="page"
+          @update:page="
+            page = $event;
+            loadContracts();
+          "
+          :size="size"
+          @update:size="
+            size = $event;
+            loadContracts();
+          "
         />
       </v-expansion-panel-text>
     </v-expansion-panel>
@@ -63,8 +84,8 @@
 </template>
 
 <script lang="ts" setup>
-import type { GridClient } from "@threefold/grid_client";
-import type { NodeStatus } from "@threefold/gridproxy_client";
+import { GridClient } from "@threefold/grid_client";
+import { ContractState, type NodeStatus } from "@threefold/gridproxy_client";
 import { Decimal } from "decimal.js";
 import { computed, defineComponent, onMounted, type Ref, ref } from "vue";
 
@@ -80,7 +101,7 @@ import {
 } from "@/utils/contracts";
 import { createCustomToast, ToastType } from "@/utils/custom_toast";
 
-import { queryClient } from "../clients";
+import { gridProxyClient, queryClient } from "../clients";
 import { useGrid } from "../stores";
 import { updateGrid } from "../utils/grid";
 
@@ -95,7 +116,9 @@ const rentContracts = ref<NormalizedContract[]>([]);
 const loadingErrorMessage = ref<string>();
 const totalCost = ref<number>();
 const totalCostUSD = ref<number>();
-
+const page = ref(1);
+const size = ref(window.env.PAGE_SIZE);
+const nodesCount = ref<number>(0);
 const panel = ref<number[]>([0, 1, 2]);
 const nodeInfo: Ref<{ [nodeId: number]: { status: NodeStatus; farmId: number } }> = ref({});
 
@@ -105,56 +128,80 @@ const nodeIDs = computed(() => {
   return [...new Set(allNodes)];
 });
 
-onMounted(onMount);
+onMounted(loadContracts);
 
-async function onMount() {
-  contracts.value = nameContracts.value = nodeContracts.value = rentContracts.value = [];
+// async function onMount() {
+//   contracts.value = nameContracts.value = nodeContracts.value = rentContracts.value = [];
+//   isLoading.value = true;
+//   totalCost.value = undefined;
+//   totalCostUSD.value = undefined;
+//   loadingErrorMessage.value = undefined;
+//   updateGrid(grid, { projectName: "" });
+
+//   if (profileManager.profile) {
+//     if (grid) {
+//       try {
+//         // Fetch user contracts, node status, and calculate total cost
+//         contracts.value = await getUserContracts(grid);
+//         nodeInfo.value = await getNodeInfo(nodeIDs.value);
+//         contracts.value.map(contract => {
+//           const { nodeId } = contract;
+//           if (nodeId && nodeInfo.value[nodeId]) {
+//             contract.farmId = nodeInfo.value[nodeId].farmId;
+//           }
+//           return contract;
+//         });
+//         nodeContracts.value = contracts.value.filter(c => c.type === ContractType.NODE);
+//         nameContracts.value = contracts.value.filter(c => c.type === ContractType.NAME);
+//         rentContracts.value = contracts.value.filter(c => c.type === ContractType.RENT);
+//         totalCost.value = getTotalCost(contracts.value);
+//         const TFTInUSD = await queryClient.tftPrice.get();
+//         totalCostUSD.value = totalCost.value * (TFTInUSD / 1000);
+//       } catch (error: any) {
+//         // Handle errors and display toast messages
+//         loadingErrorMessage.value = error.message;
+//         createCustomToast(`Error while listing contracts due: ${error.message}`, ToastType.danger, {});
+//       }
+//     } else {
+//       loadingErrorMessage.value = "Failed to initialize an instance of grid type.";
+//       createCustomToast("Failed to initialize an instance of grid type.", ToastType.danger, {});
+//     }
+//   } else {
+//     loadingErrorMessage.value =
+//       "Failed to initialize an instance of the profile manager, please make sure that you have a stable connection.";
+//     createCustomToast(
+//       "Failed to initialize an instance of the profile manager, please make sure that you have a stable connection.",
+//       ToastType.danger,
+//       {},
+//     );
+//   }
+
+//   // Update UI
+//   isLoading.value = false;
+// }
+
+async function loadContracts() {
   isLoading.value = true;
-  totalCost.value = undefined;
-  totalCostUSD.value = undefined;
   loadingErrorMessage.value = undefined;
-  updateGrid(grid, { projectName: "" });
+  try {
+    const { count, data: contracts } = await gridProxyClient.contracts.list({
+      twinId: profileManager.profile!.twinId,
+      state: [ContractState.Created, ContractState.GracePeriod],
+      size: size.value,
+      page: page.value,
+      retCount: true,
+    });
 
-  if (profileManager.profile) {
-    if (grid) {
-      try {
-        // Fetch user contracts, node status, and calculate total cost
-        contracts.value = await getUserContracts(grid);
-        nodeInfo.value = await getNodeInfo(nodeIDs.value);
-        contracts.value.map(contract => {
-          const { nodeId } = contract;
-          if (nodeId && nodeInfo.value[nodeId]) {
-            contract.farmId = nodeInfo.value[nodeId].farmId;
-          }
-          return contract;
-        });
-        nodeContracts.value = contracts.value.filter(c => c.type === ContractType.NODE);
-        nameContracts.value = contracts.value.filter(c => c.type === ContractType.NAME);
-        rentContracts.value = contracts.value.filter(c => c.type === ContractType.RENT);
-        totalCost.value = getTotalCost(contracts.value);
-        const TFTInUSD = await queryClient.tftPrice.get();
-        totalCostUSD.value = totalCost.value * (TFTInUSD / 1000);
-      } catch (error: any) {
-        // Handle errors and display toast messages
-        loadingErrorMessage.value = error.message;
-        createCustomToast(`Error while listing contracts due: ${error.message}`, ToastType.danger, {});
-      }
-    } else {
-      loadingErrorMessage.value = "Failed to initialize an instance of grid type.";
-      createCustomToast("Failed to initialize an instance of grid type.", ToastType.danger, {});
-    }
-  } else {
-    loadingErrorMessage.value =
-      "Failed to initialize an instance of the profile manager, please make sure that you have a stable connection.";
-    createCustomToast(
-      "Failed to initialize an instance of the profile manager, please make sure that you have a stable connection.",
-      ToastType.danger,
-      {},
-    );
+    console.log("Loaded Contracts: ", contracts);
+
+    nodesCount.value = count ?? 0;
+  } catch (error: any) {
+    // Handle errors and display toast messages
+    loadingErrorMessage.value = error.message;
+    createCustomToast(`Error while listing contracts due: ${error.message}`, ToastType.danger, {});
+  } finally {
+    isLoading.value = false;
   }
-
-  // Update UI
-  isLoading.value = false;
 }
 
 const nodeStatus = computed(() => {

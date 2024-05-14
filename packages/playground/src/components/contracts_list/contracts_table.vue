@@ -1,6 +1,76 @@
 <template>
   <weblet-layout ref="layout" @mount="() => {}">
-    <list-table
+    <v-data-table-server
+      v-if="$props.tableHeaders"
+      :headers="$props.tableHeaders"
+      :loading="$props.loading.value"
+      loading-text="Loading nodes..."
+      :deleting="deleting"
+      :no-data-text="capitalize(`No ${props.contractsType} contracts found on your account.`)"
+      :items-per-page-options="[
+        { value: 5, title: '5' },
+        { value: 10, title: '10' },
+        { value: 15, title: '15' },
+        { value: 50, title: '50' },
+      ]"
+      class="elevation-1 v-data-table-header"
+      density="compact"
+      :items-length="count"
+      :items-per-page="$props.size"
+      :page="$props.page"
+    >
+      <template #[`item.nodeStatus`]="{ item }">
+        <v-chip
+          v-if="$props.nodeStatus && item.nodeId !== '-' && !$props.loading.value"
+          :color="getNodeStateColor($props.nodeStatus[item.nodeId])"
+          class="text-capitalize"
+        >
+          {{ $props.nodeStatus[item.nodeId] }}
+        </v-chip>
+        <p v-else>-</p>
+      </template>
+
+      <template #[`item.state`]="{ item }">
+        <v-tooltip
+          v-if="item && item.state === ContractStates.GracePeriod"
+          :text="'Click here to check the amount of tokens needed to unlock your contract and resume your workload.'"
+          location="top center"
+        >
+          <template #activator="{ props }">
+            <v-chip @click.stop="contractLockDetails(item)" v-bind="props" :color="getStateColor(item.state)">
+              {{ item.state === ContractStates.GracePeriod ? "Grace Period" : item.state }}
+            </v-chip>
+          </template>
+        </v-tooltip>
+        <v-chip v-else :color="getStateColor(item.state)">
+          {{ item.state }}
+        </v-chip>
+      </template>
+
+      <template #[`item.consumption`]="{ item }">
+        <p v-if="item.consumption !== 0">{{ item.consumption.toFixed(3) }} TFT/hour</p>
+        <p v-else>No Data Available</p>
+      </template>
+
+      <template #[`item.actions`]="{ item }">
+        <v-tooltip :text="failedContractId == item.contractId ? 'Retry' : 'Show Details'">
+          <template #activator="{ props }">
+            <v-btn
+              :color="failedContractId == item.contractId ? 'error' : ''"
+              variant="tonal"
+              @click="showDetails(item)"
+              :disabled="(loadingShowDetails && loadingContractId !== item.contractId) || deleting"
+              :loading="loadingContractId == item.contractId"
+              v-bind="props"
+            >
+              <v-icon class="pt-1" v-if="failedContractId == item.contractId">mdi-refresh</v-icon>
+              <v-icon v-else>mdi-eye-outline</v-icon>
+            </v-btn>
+          </template>
+        </v-tooltip>
+      </template>
+    </v-data-table-server>
+    <!-- <list-table
       v-if="$props.tableHeaders"
       :headers="$props.tableHeaders"
       :items="contracts"
@@ -60,7 +130,7 @@
           </template>
         </v-tooltip>
       </template>
-    </list-table>
+    </list-table> -->
 
     <template #footer-actions>
       <v-btn
@@ -182,6 +252,18 @@ const props = defineProps({
   contractsType: {
     type: Object as PropType<ContractType>,
     required: true,
+  },
+  size: {
+    required: true,
+    type: Number,
+  },
+  page: {
+    required: true,
+    type: Number,
+  },
+  count: {
+    required: true,
+    type: Number,
   },
 });
 
